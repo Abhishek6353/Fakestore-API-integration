@@ -6,8 +6,15 @@
 //
 
 import UIKit
+import SDWebImage
 
 class ProductCollectionCell: UICollectionViewCell {
+    
+    var product: Product? {
+        didSet {
+            setData()
+        }
+    }
     
     @IBOutlet weak var productImageView: UIImageView!
     @IBOutlet weak var productTitleLabel: UILabel!
@@ -27,4 +34,21 @@ class ProductCollectionCell: UICollectionViewCell {
         backgroundColor = .white
     }
 
+    private func setData() {
+        guard let product else { return }
+        
+        productTitleLabel.text = product.title
+        productPriceLabel.text = "$ \(product.price)"
+        productRatingLabel.text = "\(product.rating.rate)"
+        
+        productImageView.sd_imageIndicator = SDWebImageActivityIndicator.gray
+        productImageView.sd_imageIndicator?.startAnimatingIndicator()
+        
+        if let imageURL = URL(string: product.image) {
+            productImageView.sd_setImage(with: imageURL) { [weak self] _, error, _, _ in
+                guard let self else { return }
+                self.productImageView.sd_imageIndicator?.stopAnimatingIndicator()
+            }
+        }
+    }
 }

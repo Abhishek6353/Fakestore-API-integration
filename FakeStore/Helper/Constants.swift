@@ -7,4 +7,4 @@
 
 import Foundation
 
-let baseURL = ""
+let baseURL = "https://fakestoreapi.com/"

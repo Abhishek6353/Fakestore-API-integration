@@ -9,6 +9,9 @@ import UIKit
 
 class HomeViewController: UIViewController {
     
+    //MARK: - Variables
+    var products: [Product] = []
+    
     //MARK: - Outlets
     @IBOutlet weak var productCollectionView: UICollectionView!
     
@@ -21,6 +24,8 @@ class HomeViewController: UIViewController {
         productCollectionView.delegate = self
         productCollectionView.dataSource = self
         productCollectionView.register(UINib(nibName: "ProductCollectionCell", bundle: nil), forCellWithReuseIdentifier: "ProductCollectionCell")
+        
+        getProduct()
     }
     
     
@@ -30,21 +35,45 @@ class HomeViewController: UIViewController {
     //MARK: - Functions
     
     private func getProduct() {
-        
+        MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: "products", withParam: [:], expecting: [Product].self, displayHud: true, includeToken: false) { _, products, error in
+            
+            if let error = error {
+                self.handleError(error)
+                return
+            }
+            
+            guard let products else {
+                return
+            }
+            
+            self.products = products
+            self.productCollectionView.reloadData()
+            
+        }
     }
+    
+    private func handleError(_ error: NetworkError) {
+        DispatchQueue.main.async {
+            // Show an alert or toast with the error description
+            self.view.makeToast(error.localizedDescription, position: .top)
+        }
+    }
+
     
 }
 
 
 extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return 10
+        return products.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ProductCollectionCell", for: indexPath) as? ProductCollectionCell else {
             return UICollectionViewCell()
         }
+        cell.product = products[indexPath.row]
+        
         return cell
     }
     

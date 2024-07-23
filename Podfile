@@ -9,5 +9,7 @@ target 'FakeStore' do
 
 pod 'Alamofire' 
 pod 'SVProgressHUD' 
+pod 'SDWebImage'
+
 
 end
