@@ -9,7 +9,14 @@ import Foundation
 import Alamofire
 import UIKit
 
+import Foundation
+import Alamofire
+import UIKit
+
+
 class MVCServer: NSObject {
+    
+    let Access_token = ""
     
     // Computed property for the server URL
     var serverUrl: String {
@@ -28,18 +35,16 @@ class MVCServer: NSObject {
     }
     
     // Create headers with or without token
-//    func getHeaderWithToken(token: Bool, contentType: String = "application/x-www-form-urlencoded") -> HTTPHeaders {
-//        if token {
-//            return [
-//                "Accept": "application/json",
-//                "Authorization": "Bearer \(Access_token)"
-//            ]
-//        } else {
-//            return [
-//                "Accept": "application/json"
-//            ]
-//        }
-//    }
+    func getHeaders(includeToken: Bool, contentType: String = "application/json") -> HTTPHeaders {
+        var headers: HTTPHeaders = ["Accept": "application/json"]
+        
+        if includeToken {
+            headers["Authorization"] = "Bearer \(Access_token)"
+        }
+        
+        headers["Content-Type"] = contentType
+        return headers
+    }
     
     // Perform a network request with the given parameters
     func serviceRequestWithURL<T: Codable>(
@@ -49,7 +54,7 @@ class MVCServer: NSObject {
         expecting: T.Type,
         displayHud: Bool,
         includeToken: Bool,
-        completion: @escaping (_ responseCode: Int, _ response: T?) -> Void
+        completion: @escaping (_ responseCode: Int?, _ response: T?, _ error: NetworkError?) -> Void
     ) {
         if displayHud {
             networkActivity(goingOn: true)
@@ -59,8 +64,11 @@ class MVCServer: NSObject {
         print("Request URL:", requestURL)
         print("Parameters:", postParam)
         
-        AF.request(requestURL, method: reqMethod, parameters: postParam, encoding: URLEncoding.default/*, headers: getHeaderWithToken(token: includeToken)*/)
+        let headers = getHeaders(includeToken: includeToken)
+        
+        AF.request(requestURL, method: reqMethod, parameters: postParam, encoding: URLEncoding.default, headers: headers)
             .responseDecodable(of: expecting) { response in
+                
                 if displayHud {
                     self.networkActivity(goingOn: false)
                 }
@@ -72,26 +80,60 @@ class MVCServer: NSObject {
                     if let urlError = error.underlyingError as? URLError {
                         switch urlError.code {
                         case .notConnectedToInternet:
-                            SceneDelegate().sceneDelegate?.mainNav?.topViewController?.view.makeToast("Please, check your internet connection.", position: .top)
+                            completion(nil, nil, .noInternetConnection)
                         default:
-                            break
+                            completion(nil, nil, .unknownError(message: error.localizedDescription))
                         }
+                    } else {
+                        completion(nil, nil, .unknownError(message: error.localizedDescription))
                     }
-                    completion(0, nil)
                     
                 case .success(let result):
                     guard let httpResponse = response.response else {
-                        completion(0, nil)
+                        completion(nil, nil, .unknownError(message: "No response from server."))
                         return
                     }
                     
                     switch httpResponse.statusCode {
                     case 200...299:
-                        completion(1, result)
+                        completion(httpResponse.statusCode, result, nil)
+                    case 401:
+                        completion(httpResponse.statusCode, nil, .serverError(message: "Unauthorized access. Please log in again."))
+                    case 403:
+                        completion(httpResponse.statusCode, nil, .serverError(message: "Forbidden access."))
+                    case 404:
+                        completion(httpResponse.statusCode, nil, .serverError(message: "Resource not found."))
+                    case 500...599:
+                        completion(httpResponse.statusCode, nil, .serverError(message: "Server error occurred."))
                     default:
-                        completion(0, result)
+                        let message = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
+                        completion(httpResponse.statusCode, nil, .serverError(message: message))
                     }
                 }
             }
+    }
+    
+}
+
+
+
+// Enum for network errors, providing localized descriptions
+enum NetworkError: Error {
+    case noInternetConnection
+    case serverError(message: String)
+    case decodingError
+    case unknownError(message: String)
+    
+    var localizedDescription: String {
+        switch self {
+        case .noInternetConnection:
+            return "No Internet Connection. Please check your network settings."
+        case .serverError(let message):
+            return "Server Error (\(message)"
+        case .decodingError:
+            return "Failed to decode the response. Please try again."
+        case .unknownError(let message):
+            return "Unknown Error: \(message)"
+        }
     }
 }
