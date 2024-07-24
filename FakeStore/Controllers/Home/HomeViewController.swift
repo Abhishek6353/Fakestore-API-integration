@@ -11,7 +11,8 @@ class HomeViewController: UIViewController {
     
     //MARK: - Variables
     var products: [Product] = []
-    var categories: [String] = ["All"]
+    var categories: [String] = []
+    var selectedIndex = 0
     
     //MARK: - Outlets
     @IBOutlet weak var productCollectionView: UICollectionView!
@@ -52,8 +53,12 @@ class HomeViewController: UIViewController {
                 return
             }
             
-            self.categories.append(contentsOf: categories)
+            self.categories = categories
+            self.categories.insert("All", at: 0)
             self.categoryCollectionView.reloadData()
+            
+            self.categoryCollectionView.selectItem(at: IndexPath(item: 0, section: 0), animated: false, scrollPosition: .top)
+            self.collectionView(self.categoryCollectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
         }
     }
     
@@ -114,10 +119,9 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == categoryCollectionView {
-            getProduct(by: categories[indexPath.row])
-            
-            if let cell = collectionView.cellForItem(at: indexPath) as? CategoryCollectionCell {
-                cell.isSelected = !cell.isSelected
+            if indexPath.row != selectedIndex {
+                getProduct(by: categories[indexPath.row])
+                selectedIndex = indexPath.row
             }
         }
     }
