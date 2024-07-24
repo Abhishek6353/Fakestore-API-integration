@@ -11,9 +11,11 @@ class HomeViewController: UIViewController {
     
     //MARK: - Variables
     var products: [Product] = []
+    var categories: [String] = []
     
     //MARK: - Outlets
     @IBOutlet weak var productCollectionView: UICollectionView!
+    @IBOutlet weak var categoryCollectionView: UICollectionView!
     
     
     //MARK: - View Lifecycle
@@ -23,8 +25,13 @@ class HomeViewController: UIViewController {
         
         productCollectionView.delegate = self
         productCollectionView.dataSource = self
-        productCollectionView.register(UINib(nibName: "ProductCollectionCell", bundle: nil), forCellWithReuseIdentifier: "ProductCollectionCell")
+        productCollectionView.register(UINib(nibName: ProductCollectionCell.className, bundle: nil), forCellWithReuseIdentifier: ProductCollectionCell.className)
         
+        categoryCollectionView.delegate = self
+        categoryCollectionView.dataSource = self
+        categoryCollectionView.register(UINib(nibName: CategoryCollectionCell.className, bundle: nil), forCellWithReuseIdentifier: CategoryCollectionCell.className)
+        
+        getCategory()
         getProduct()
     }
     
@@ -33,6 +40,23 @@ class HomeViewController: UIViewController {
     
     
     //MARK: - Functions
+    
+    private func getCategory() {
+        MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: "products/categories", withParam: [:], expecting: [String].self, displayHud: false, includeToken: false) { responseCode, categories, error in
+            if let error = error {
+                self.handleError(error)
+                return
+            }
+            
+            guard let categories else {
+                return
+            }
+            
+            self.categories = categories
+            self.categories.append(contentsOf: categories)
+            self.categoryCollectionView.reloadData()
+        }
+    }
     
     private func getProduct() {
         MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: "products", withParam: [:], expecting: [Product].self, displayHud: true, includeToken: false) { _, products, error in
@@ -48,7 +72,6 @@ class HomeViewController: UIViewController {
             
             self.products = products
             self.productCollectionView.reloadData()
-            
         }
     }
     
@@ -58,33 +81,46 @@ class HomeViewController: UIViewController {
             self.view.makeToast(error.localizedDescription, position: .top)
         }
     }
-
-    
 }
 
 
 extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return products.count
+        return collectionView == categoryCollectionView ? categories.count : products.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ProductCollectionCell", for: indexPath) as? ProductCollectionCell else {
-            return UICollectionViewCell()
-        }
-        cell.product = products[indexPath.row]
         
-        return cell
+        if collectionView == categoryCollectionView {
+            
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CategoryCollectionCell.className, for: indexPath) as? CategoryCollectionCell else {
+                return UICollectionViewCell()
+            }
+            cell.category = categories[indexPath.row]
+            
+            return cell
+            
+        } else {
+            
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCollectionCell.className, for: indexPath) as? ProductCollectionCell else {
+                return UICollectionViewCell()
+            }
+            cell.product = products[indexPath.row]
+            
+            return cell
+        }
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
-        return UIEdgeInsets(top: 10.0, left: 1.0, bottom: 10.0, right: 1.0)
+        return collectionView == categoryCollectionView ? UIEdgeInsets(top: 1.0, left: 1.0, bottom: 1.0, right: 1.0) : UIEdgeInsets(top: 15.0, left: 1.0, bottom: 10.0, right: 1.0)
     }
-    
-    //MARK: - SizeForItemAt
+        
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        
         let gridLayout = collectionViewLayout as! UICollectionViewFlowLayout
         let widthPerItem = collectionView.frame.width / 2 - gridLayout.minimumInteritemSpacing
-        return CGSize(width:widthPerItem, height:(widthPerItem * 1.5))
+
+        return collectionView == categoryCollectionView ? CGSize() : CGSize(width: widthPerItem, height: (widthPerItem * 1.5))
     }
 }
