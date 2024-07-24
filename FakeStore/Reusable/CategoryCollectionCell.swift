@@ -22,12 +22,16 @@ class CategoryCollectionCell: UICollectionViewCell {
         super.awakeFromNib()
         // Initialization code
         layer.cornerRadius = 8.0
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOffset = CGSize(width: 0, height: 0)
-        layer.shadowRadius = 1.0
-        layer.shadowOpacity = 0.75
+        layer.borderWidth = 1
+        layer.borderColor = UIColor.lightGray.cgColor
         layer.masksToBounds = false
         backgroundColor = .white
+    }
+    
+    override var isSelected: Bool {
+        didSet {
+            layer.borderColor = isSelected ? UIColor.green.cgColor : UIColor.lightGray.cgColor
+        }
     }
 
 }

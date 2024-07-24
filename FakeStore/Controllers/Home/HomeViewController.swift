@@ -11,7 +11,7 @@ class HomeViewController: UIViewController {
     
     //MARK: - Variables
     var products: [Product] = []
-    var categories: [String] = []
+    var categories: [String] = ["All"]
     
     //MARK: - Outlets
     @IBOutlet weak var productCollectionView: UICollectionView!
@@ -26,7 +26,7 @@ class HomeViewController: UIViewController {
         productCollectionView.delegate = self
         productCollectionView.dataSource = self
         productCollectionView.register(UINib(nibName: ProductCollectionCell.className, bundle: nil), forCellWithReuseIdentifier: ProductCollectionCell.className)
-        
+         
         categoryCollectionView.delegate = self
         categoryCollectionView.dataSource = self
         categoryCollectionView.register(UINib(nibName: CategoryCollectionCell.className, bundle: nil), forCellWithReuseIdentifier: CategoryCollectionCell.className)
@@ -52,13 +52,13 @@ class HomeViewController: UIViewController {
                 return
             }
             
-            self.categories = categories
+            self.categories.append(contentsOf: categories)
             self.categoryCollectionView.reloadData()
         }
     }
     
     private func getProduct(by category: String = "") {
-        let endPoint = category == "" ? "products" : "products/category/\(category)"
+        let endPoint = category == "" ? "products" : category == "All" ? "products" : "products/category/\(category)"
         
         MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: endPoint, withParam: [:], expecting: [Product].self, displayHud: true, includeToken: false) { _, products, error in
             
@@ -78,7 +78,6 @@ class HomeViewController: UIViewController {
     
     private func handleError(_ error: NetworkError) {
         DispatchQueue.main.async {
-            // Show an alert or toast with the error description
             self.view.makeToast(error.localizedDescription, position: .top)
         }
     }
@@ -116,6 +115,10 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == categoryCollectionView {
             getProduct(by: categories[indexPath.row])
+            
+            if let cell = collectionView.cellForItem(at: indexPath) as? CategoryCollectionCell {
+                cell.isSelected = !cell.isSelected
+            }
         }
     }
     
