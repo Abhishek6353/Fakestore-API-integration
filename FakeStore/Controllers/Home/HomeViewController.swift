@@ -10,9 +10,13 @@ import UIKit
 class HomeViewController: UIViewController {
     
     //MARK: - Variables
-    var products: [Product] = []
-    var categories: [String] = []
     var selectedIndex = 0
+
+    var products: [Product] = []
+    var filteredProducts: [Product] = []
+    var categories: [String] = []
+    let searchController = UISearchController()
+
     
     //MARK: - Outlets
     @IBOutlet weak var productCollectionView: UICollectionView!
@@ -23,6 +27,9 @@ class HomeViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.title = "FakeStore"
+        self.navigationItem.searchController = searchController
+        self.searchController.searchResultsUpdater = self
+        self.searchController.searchBar.placeholder = "Products"
         
         productCollectionView.delegate = self
         productCollectionView.dataSource = self
@@ -77,6 +84,7 @@ class HomeViewController: UIViewController {
             }
             
             self.products = products
+            self.filteredProducts = products
             self.productCollectionView.reloadData()
         }
     }
@@ -92,7 +100,7 @@ class HomeViewController: UIViewController {
 extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return collectionView == categoryCollectionView ? categories.count : products.count
+        return collectionView == categoryCollectionView ? categories.count : filteredProducts.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -111,7 +119,7 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ProductCollectionCell.className, for: indexPath) as? ProductCollectionCell else {
                 return UICollectionViewCell()
             }
-            cell.product = products[indexPath.row]
+            cell.product = filteredProducts[indexPath.row]
             
             return cell
         }
@@ -136,5 +144,18 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
         let widthPerItem = collectionView.frame.width / 2 - gridLayout.minimumInteritemSpacing
 
         return collectionView == categoryCollectionView ? CGSize() : CGSize(width: widthPerItem, height: (widthPerItem * 1.5))
+    }
+}
+
+
+//MARK: - UISearchController methods
+extension HomeViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        if let text = searchController.searchBar.text, text.count > 0 {
+            filteredProducts = products.filter( { $0.title.lowercased().contains(text.lowercased())})
+        } else {
+            filteredProducts = products
+        }
+        productCollectionView.reloadData()
     }
 }
