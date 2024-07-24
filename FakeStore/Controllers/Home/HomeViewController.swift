@@ -53,13 +53,14 @@ class HomeViewController: UIViewController {
             }
             
             self.categories = categories
-            self.categories.append(contentsOf: categories)
             self.categoryCollectionView.reloadData()
         }
     }
     
-    private func getProduct() {
-        MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: "products", withParam: [:], expecting: [Product].self, displayHud: true, includeToken: false) { _, products, error in
+    private func getProduct(by category: String = "") {
+        let endPoint = category == "" ? "products" : "products/category/\(category)"
+        
+        MVCServer().serviceRequestWithURL(reqMethod: .get, withUrl: endPoint, withParam: [:], expecting: [Product].self, displayHud: true, includeToken: false) { _, products, error in
             
             if let error = error {
                 self.handleError(error)
@@ -109,6 +110,12 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
             cell.product = products[indexPath.row]
             
             return cell
+        }
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if collectionView == categoryCollectionView {
+            getProduct(by: categories[indexPath.row])
         }
     }
     
